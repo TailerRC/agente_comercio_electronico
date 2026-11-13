@@ -1,0 +1,7 @@
+openai
+chromadb
+sentence-transformers
+python-telegram-bot
+requests
+python-dotenv
+pytest
