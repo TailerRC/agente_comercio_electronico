@@ -1,4 +1,5 @@
 """Pruebas de tools_db.py con una BD temporal (nunca tocan data/tienda.db)."""
+from pathlib import Path
 import sqlite3
 
 import pytest
@@ -285,3 +286,40 @@ def test_sin_base_de_datos_devuelve_texto(tmp_path, monkeypatch):
     monkeypatch.setattr(t, "RUTA_DB", tmp_path / "no_existe.db")
     r = t.consultar_stock("ideapad")
     assert isinstance(r, str) and "base de datos" in r
+
+
+# ------------------------------------------------------------ fichas técnicas (generar_fichas.py)
+
+def test_fichas_tecnicas_generadas():
+    import generar_fichas
+    ruta_docs = Path(__file__).parent.parent / "data" / "docs"
+    fichas = list(ruta_docs.glob("ficha_*.md"))
+    assert len(fichas) == 48
+
+    # Verificar que los productos clave tienen su ficha
+    slugs = [f.name for f in fichas]
+    assert "ficha_laptop_lenovo_ideapad_15.md" in slugs
+    assert "ficha_monitor_samsung_odyssey_g3_24_pulgadas.md" in slugs
+    assert "ficha_mouse_logitech_m185.md" in slugs
+
+    # Verificar estructura y ausencia de precio / stock en todas las fichas
+    secciones_requeridas = [
+        "## Descripción",
+        "## Especificaciones",
+        "## Uso recomendado",
+        "## Garantía referencial",
+    ]
+    terminos_prohibidos = ["usd", "precio", " stock", "agotado"]
+
+    for ficha in fichas:
+        contenido = ficha.read_text(encoding="utf-8")
+        assert contenido.startswith("# "), f"Ficha {ficha.name} no empieza con '# '"
+        assert "Categoría:" in contenido, f"Ficha {ficha.name} no incluye 'Categoría:'"
+        for sec in secciones_requeridas:
+            assert sec in contenido, f"Ficha {ficha.name} no contiene '{sec}'"
+
+        contenido_lower = contenido.lower()
+        for prohibido in terminos_prohibidos:
+            assert prohibido not in contenido_lower, (
+                f"Ficha {ficha.name} contiene término prohibido '{prohibido}'"
+            )
